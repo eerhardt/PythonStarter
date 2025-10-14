@@ -1,3 +1,6 @@
 {
-  "appHostPath": "../PythonStarter.AppHost/PythonStarter.AppHost.csproj"
+  "appHostPath": "../app_host.cs",
+  "features": {
+    "singlefileapphostenabled": "true"
+  }
 }
