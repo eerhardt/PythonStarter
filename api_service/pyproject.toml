@@ -1,13 +1,13 @@
 [project]
-name = "instrumentedpythonproject"
+name = "api-service"
 version = "0.1.0"
 description = "API Service"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "flask==3.0.3",
-    "gunicorn>=23.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
     "opentelemetry-distro>=0.58b0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
-    "opentelemetry-instrumentation-flask>=0.58b0",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
 ]

@@ -2,28 +2,28 @@ import os
 import logging
 import random
 from datetime import datetime, timedelta
-import flask
-from flask import jsonify
+from typing import List, Dict, Any
+from fastapi import FastAPI
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-app = flask.Flask(__name__)
+app = FastAPI()
 
 trace.set_tracer_provider(TracerProvider())
 otlpExporter = OTLPSpanExporter()
 processor = BatchSpanProcessor(otlpExporter)
 trace.get_tracer_provider().add_span_processor(processor)
 
-FlaskInstrumentor().instrument_app(app)
+FastAPIInstrumentor.instrument_app(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.route('/weatherforecast')
-def weather_forecast():
+@app.get("/weatherforecast", response_model=List[Dict[str, Any]])
+async def weather_forecast():
     """Weather forecast endpoint"""
     summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]
     
@@ -37,10 +37,18 @@ def weather_forecast():
             'summary': random.choice(summaries)
         }
         forecast.append(forecast_item)   
-    return jsonify(forecast)
+    return forecast
 
 if __name__ == '__main__':
+    import uvicorn
     port = int(os.environ.get('PORT', 8111))
-    debug = bool(os.environ.get('DEBUG', False))
     host = os.environ.get('HOST', '127.0.0.1')
-    app.run(port=port, debug=debug, host=host, use_reloader=True)
+    reload = os.environ.get('DEBUG', 'False').lower() == 'true'
+    
+    uvicorn.run(
+        "app:app", 
+        host=host, 
+        port=port, 
+        reload=reload,
+        log_level="info"
+    )
