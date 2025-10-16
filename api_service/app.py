@@ -91,11 +91,9 @@ async def weather_forecast():
     forecast = []
     for index in range(1, 6):  # Range 1 to 5 (inclusive)
         temp_c = random.randint(-20, 55)
-        date_str = (datetime.datetime.now() + datetime.timedelta(days=index)).strftime(
-            "%Y-%m-%d"
-        )
+        forecast_date = datetime.datetime.now() + datetime.timedelta(days=index)
         forecast_item = {
-            "date": date_str,
+            "date": forecast_date.isoformat(),
             "temperatureC": temp_c,
             "temperatureF": int(temp_c * 9 / 5) + 32,
             "summary": random.choice(summaries),
