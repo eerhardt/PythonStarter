@@ -10,5 +10,6 @@ dependencies = [
     "opentelemetry-distro>=0.59b0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
     "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "opentelemetry-instrumentation-redis>=0.59b0",
     "redis>=6.4.0",
 ]

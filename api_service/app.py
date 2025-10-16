@@ -11,6 +11,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
 import redis
 
 app = FastAPI()
@@ -43,7 +44,8 @@ otlpExporter = OTLPSpanExporter()
 processor = BatchSpanProcessor(otlpExporter)
 trace.get_tracer_provider().add_span_processor(processor)
 
-FastAPIInstrumentor.instrument_app(app)
+FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
+RedisInstrumentor().instrument()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
