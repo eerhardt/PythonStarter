@@ -2,19 +2,19 @@ import os
 import logging
 import random
 import json
-from datetime import datetime, timedelta
+import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.redis import RedisInstrumentor
+import fastapi
+import fastapi.responses
+import opentelemetry.trace
+import opentelemetry.exporter.otlp.proto.grpc.trace_exporter
+import opentelemetry.sdk.trace
+import opentelemetry.sdk.trace.export
+import opentelemetry.instrumentation.fastapi
+import opentelemetry.instrumentation.redis
 import redis
 
-app = FastAPI()
+app = fastapi.FastAPI()
 
 # Initialize Redis client
 redis_client: Optional[redis.Redis] = None
@@ -39,13 +39,13 @@ def get_redis_client() -> Optional[redis.Redis]:
             logger.info("No CACHE_URI environment variable found, Redis caching disabled")
     return redis_client
 
-trace.set_tracer_provider(TracerProvider())
-otlpExporter = OTLPSpanExporter()
-processor = BatchSpanProcessor(otlpExporter)
-trace.get_tracer_provider().add_span_processor(processor)
+opentelemetry.trace.set_tracer_provider(opentelemetry.sdk.trace.TracerProvider())
+otlpExporter = opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter()
+processor = opentelemetry.sdk.trace.export.BatchSpanProcessor(otlpExporter)
+opentelemetry.trace.get_tracer_provider().add_span_processor(processor)
 
-FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
-RedisInstrumentor().instrument()
+opentelemetry.instrumentation.fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
+opentelemetry.instrumentation.redis.RedisInstrumentor().instrument()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ async def weather_forecast():
     """Weather forecast endpoint"""
     cache_key = "weatherforecast"
     cache_ttl = 5  # 5 seconds cache duration
-    
+
     # Try to get data from cache
     redis_client = get_redis_client()
     if redis_client:
@@ -66,31 +66,31 @@ async def weather_forecast():
                 return json.loads(cached_data)
         except Exception as e:
             logger.warning(f"Redis cache read error: {e}")
-    
+
     # Generate fresh data if not in cache or cache unavailable
     summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]
-    
+
     forecast = []
     for index in range(1, 6):  # Range 1 to 5 (inclusive)
         temp_c = random.randint(-20, 55)
         forecast_item = {
-            'date': (datetime.now() + timedelta(days=index)).strftime('%Y-%m-%d'),
+            'date': (datetime.datetime.now() + datetime.timedelta(days=index)).strftime('%Y-%m-%d'),
             'temperatureC': temp_c,
             'temperatureF': int(temp_c * 9/5) + 32,
             'summary': random.choice(summaries)
         }
         forecast.append(forecast_item)
-    
+
     # Cache the data
     if redis_client:
         try:
             redis_client.setex(cache_key, cache_ttl, json.dumps(forecast))
         except Exception as e:
             logger.warning(f"Redis cache write error: {e}")
-    
+
     return forecast
 
-@app.get("/health", response_class=PlainTextResponse)
+@app.get("/health", response_class=fastapi.responses.PlainTextResponse)
 async def health_check():
     """Health check endpoint"""
     redis_client = get_redis_client()
@@ -103,11 +103,11 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8111))
     host = os.environ.get('HOST', '127.0.0.1')
     reload = os.environ.get('DEBUG', 'False').lower() == 'true'
-    
+
     uvicorn.run(
-        "app:app", 
-        host=host, 
-        port=port, 
+        "app:app",
+        host=host,
+        port=port,
         reload=reload,
         log_level="info"
     )
