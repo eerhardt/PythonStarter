@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import datetime
 import json
 import logging
 import os
 import random
-import typing
+from typing import TYPE_CHECKING
 
 import fastapi
 import fastapi.responses
@@ -17,21 +15,20 @@ import opentelemetry.sdk.trace.export as otel_sdk_export
 import opentelemetry.trace as otel_trace
 import redis
 
-if typing.TYPE_CHECKING:
-    from typing import Any, Dict, List, Optional
+if TYPE_CHECKING:
+    from typing import Any
 
 app = fastapi.FastAPI()
 
 # Initialize Redis client
-redis_client: Optional[redis.Redis] = None
+redis_client: redis.Redis | None = None
 
 
-def get_redis_client() -> Optional[redis.Redis]:
-    """Get Redis client instance"""
+def get_redis_client() -> redis.Redis | None:
+    """Get the Redis client instance."""
     global redis_client
     if redis_client is None:
-        cache_uri = os.environ.get("CACHE_URI")
-        if cache_uri:
+        if cache_uri := os.environ.get("CACHE_URI"):
             try:
                 redis_client = redis.from_url(
                     cache_uri,
@@ -61,15 +58,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@app.get("/api/weatherforecast", response_model=List[Dict[str, Any]])
+@app.get("/api/weatherforecast", response_model=list[dict[str, Any]])
 async def weather_forecast():
-    """Weather forecast endpoint"""
+    """Weather forecast endpoint."""
     cache_key = "weatherforecast"
     cache_ttl = 5  # 5 seconds cache duration
 
-    # Try to get data from cache
-    redis_client = get_redis_client()
-    if redis_client:
+    # Try to get data from cache.
+    if redis_client := get_redis_client():
         try:
             cached_data = redis_client.get(cache_key)
             if cached_data:
@@ -78,7 +74,7 @@ async def weather_forecast():
         except Exception as e:
             logger.warning(f"Redis cache read error: {e}")
 
-    # Generate fresh data if not in cache or cache unavailable
+    # Generate fresh data if not in cache or cache unavailable.
     summaries = [
         "Freezing",
         "Bracing",
@@ -95,10 +91,11 @@ async def weather_forecast():
     forecast = []
     for index in range(1, 6):  # Range 1 to 5 (inclusive)
         temp_c = random.randint(-20, 55)
+        date_str = (datetime.datetime.now() + datetime.timedelta(days=index)).strftime(
+            "%Y-%m-%d"
+        )
         forecast_item = {
-            "date": (datetime.datetime.now() + datetime.timedelta(days=index)).strftime(
-                "%Y-%m-%d"
-            ),
+            "date": date_str,
             "temperatureC": temp_c,
             "temperatureF": int(temp_c * 9 / 5) + 32,
             "summary": random.choice(summaries),
@@ -117,9 +114,8 @@ async def weather_forecast():
 
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
 async def health_check():
-    """Health check endpoint"""
-    redis_client = get_redis_client()
-    if redis_client:
+    """Health check endpoint."""
+    if redis_client := get_redis_client():
         redis_client.ping()
     return "Healthy"
 
