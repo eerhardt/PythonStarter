@@ -22,7 +22,7 @@ FastAPIInstrumentor.instrument_app(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.get("/weatherforecast", response_model=List[Dict[str, Any]])
+@app.get("/api/weatherforecast", response_model=List[Dict[str, Any]])
 async def weather_forecast():
     """Weather forecast endpoint"""
     summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]
