@@ -1,14 +1,18 @@
 #:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25515.7
-#:package Aspire.Hosting.Python@13.0.0-preview.1.25515.7
-#:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 #:package Aspire.Hosting.NodeJs@13.0.0-preview.1.25515.7
+#:package Aspire.Hosting.Python@13.0.0-preview.1.25515.7
+#:package Aspire.Hosting.Redis@13.0.0-preview.1.25515.7
+#:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var cache = builder.AddRedis("cache");
+
 var apiService = builder.AddPythonScript("apiservice", "./api_service", "app.py")
     .WithUvEnvironment()
+    .WithReference(cache)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints();
 
