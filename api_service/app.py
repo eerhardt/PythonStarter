@@ -6,12 +6,12 @@ import datetime
 from typing import List, Dict, Any, Optional
 import fastapi
 import fastapi.responses
-import opentelemetry.trace
-import opentelemetry.exporter.otlp.proto.grpc.trace_exporter
-import opentelemetry.sdk.trace
-import opentelemetry.sdk.trace.export
-import opentelemetry.instrumentation.fastapi
-import opentelemetry.instrumentation.redis
+import opentelemetry.trace as otel_trace
+import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as otel_exporter
+import opentelemetry.sdk.trace as otel_sdk_trace
+import opentelemetry.sdk.trace.export as otel_sdk_export
+import opentelemetry.instrumentation.fastapi as otel_fastapi
+import opentelemetry.instrumentation.redis as otel_redis
 import redis
 
 app = fastapi.FastAPI()
@@ -39,13 +39,13 @@ def get_redis_client() -> Optional[redis.Redis]:
             logger.info("No CACHE_URI environment variable found, Redis caching disabled")
     return redis_client
 
-opentelemetry.trace.set_tracer_provider(opentelemetry.sdk.trace.TracerProvider())
-otlpExporter = opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter()
-processor = opentelemetry.sdk.trace.export.BatchSpanProcessor(otlpExporter)
-opentelemetry.trace.get_tracer_provider().add_span_processor(processor)
+otel_trace.set_tracer_provider(otel_sdk_trace.TracerProvider())
+otlpExporter = otel_exporter.OTLPSpanExporter()
+processor = otel_sdk_export.BatchSpanProcessor(otlpExporter)
+otel_trace.get_tracer_provider().add_span_processor(processor)
 
-opentelemetry.instrumentation.fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
-opentelemetry.instrumentation.redis.RedisInstrumentor().instrument()
+otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
+otel_redis.RedisInstrumentor().instrument()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
