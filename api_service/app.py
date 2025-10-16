@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace import TracerProvider
@@ -24,7 +25,12 @@ def get_redis_client() -> Optional[redis.Redis]:
         cache_uri = os.environ.get('CACHE_URI')
         if cache_uri:
             try:
-                redis_client = redis.from_url(cache_uri, decode_responses=True)
+                redis_client = redis.from_url(
+                    cache_uri,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    decode_responses=True
+                )
                 logger.info(f"Connected to Redis at {cache_uri}")
             except Exception as e:
                 logger.warning(f"Failed to connect to Redis: {e}")
@@ -84,6 +90,14 @@ async def weather_forecast():
             logger.warning(f"Redis cache write error: {e}")
     
     return forecast
+
+@app.get("/health", response_class=PlainTextResponse)
+async def health_check():
+    """Health check endpoint"""
+    redis_client = get_redis_client()
+    if redis_client:
+        redis_client.ping()
+    return "Healthy"
 
 if __name__ == '__main__':
     import uvicorn

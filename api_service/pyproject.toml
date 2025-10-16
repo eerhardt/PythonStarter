@@ -5,10 +5,10 @@ description = "API Service"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "opentelemetry-distro>=0.58b0",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
-    "opentelemetry-instrumentation-fastapi>=0.48b0",
-    "redis>=5.0.0",
+    "fastapi>=0.119.0",
+    "uvicorn[standard]>=0.37.0",
+    "opentelemetry-distro>=0.59b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
+    "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "redis>=6.4.0",
 ]
