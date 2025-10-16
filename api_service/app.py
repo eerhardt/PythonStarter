@@ -1,43 +1,53 @@
-import os
-import logging
-import random
-import json
+from __future__ import annotations
+
 import datetime
-from typing import List, Dict, Any, Optional
+import json
+import logging
+import os
+import random
+import typing
+
 import fastapi
 import fastapi.responses
-import opentelemetry.trace as otel_trace
 import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as otel_exporter
-import opentelemetry.sdk.trace as otel_sdk_trace
-import opentelemetry.sdk.trace.export as otel_sdk_export
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
+import opentelemetry.sdk.trace as otel_sdk_trace
+import opentelemetry.sdk.trace.export as otel_sdk_export
+import opentelemetry.trace as otel_trace
 import redis
+
+if typing.TYPE_CHECKING:
+    from typing import Any, Dict, List, Optional
 
 app = fastapi.FastAPI()
 
 # Initialize Redis client
 redis_client: Optional[redis.Redis] = None
 
+
 def get_redis_client() -> Optional[redis.Redis]:
     """Get Redis client instance"""
     global redis_client
     if redis_client is None:
-        cache_uri = os.environ.get('CACHE_URI')
+        cache_uri = os.environ.get("CACHE_URI")
         if cache_uri:
             try:
                 redis_client = redis.from_url(
                     cache_uri,
                     socket_connect_timeout=5,
                     socket_timeout=5,
-                    decode_responses=True
+                    decode_responses=True,
                 )
             except Exception as e:
                 logger.warning(f"Failed to connect to Redis: {e}")
                 redis_client = None
         else:
-            logger.info("No CACHE_URI environment variable found, Redis caching disabled")
+            logger.info(
+                "No CACHE_URI environment variable found, Redis caching disabled"
+            )
     return redis_client
+
 
 otel_trace.set_tracer_provider(otel_sdk_trace.TracerProvider())
 otlpExporter = otel_exporter.OTLPSpanExporter()
@@ -49,6 +59,7 @@ otel_redis.RedisInstrumentor().instrument()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 @app.get("/api/weatherforecast", response_model=List[Dict[str, Any]])
 async def weather_forecast():
@@ -68,16 +79,29 @@ async def weather_forecast():
             logger.warning(f"Redis cache read error: {e}")
 
     # Generate fresh data if not in cache or cache unavailable
-    summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]
+    summaries = [
+        "Freezing",
+        "Bracing",
+        "Chilly",
+        "Cool",
+        "Mild",
+        "Warm",
+        "Balmy",
+        "Hot",
+        "Sweltering",
+        "Scorching",
+    ]
 
     forecast = []
     for index in range(1, 6):  # Range 1 to 5 (inclusive)
         temp_c = random.randint(-20, 55)
         forecast_item = {
-            'date': (datetime.datetime.now() + datetime.timedelta(days=index)).strftime('%Y-%m-%d'),
-            'temperatureC': temp_c,
-            'temperatureF': int(temp_c * 9/5) + 32,
-            'summary': random.choice(summaries)
+            "date": (datetime.datetime.now() + datetime.timedelta(days=index)).strftime(
+                "%Y-%m-%d"
+            ),
+            "temperatureC": temp_c,
+            "temperatureF": int(temp_c * 9 / 5) + 32,
+            "summary": random.choice(summaries),
         }
         forecast.append(forecast_item)
 
@@ -90,6 +114,7 @@ async def weather_forecast():
 
     return forecast
 
+
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
 async def health_check():
     """Health check endpoint"""
@@ -98,16 +123,12 @@ async def health_check():
         redis_client.ping()
     return "Healthy"
 
-if __name__ == '__main__':
-    import uvicorn
-    port = int(os.environ.get('PORT', 8111))
-    host = os.environ.get('HOST', '127.0.0.1')
-    reload = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    uvicorn.run(
-        "app:app",
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info"
-    )
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8111))
+    host = os.environ.get("HOST", "127.0.0.1")
+    reload = os.environ.get("DEBUG", "False").lower() == "true"
+
+    uvicorn.run("app:app", host=host, port=port, reload=reload, log_level="info")
