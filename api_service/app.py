@@ -31,7 +31,6 @@ def get_redis_client() -> Optional[redis.Redis]:
                     socket_timeout=5,
                     decode_responses=True
                 )
-                logger.info(f"Connected to Redis at {cache_uri}")
             except Exception as e:
                 logger.warning(f"Failed to connect to Redis: {e}")
                 redis_client = None
@@ -67,7 +66,6 @@ async def weather_forecast():
             logger.warning(f"Redis cache read error: {e}")
     
     # Generate fresh data if not in cache or cache unavailable
-    logger.info("Generating fresh weather forecast data")
     summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]
     
     forecast = []
@@ -85,7 +83,6 @@ async def weather_forecast():
     if redis_client:
         try:
             redis_client.setex(cache_key, cache_ttl, json.dumps(forecast))
-            logger.info(f"Cached weather forecast data for {cache_ttl} seconds")
         except Exception as e:
             logger.warning(f"Redis cache write error: {e}")
     
