@@ -4,8 +4,6 @@ import json
 import logging
 import os
 import random
-import telemetry
-from typing import TYPE_CHECKING, Any
 
 import fastapi
 import fastapi.responses
@@ -13,20 +11,24 @@ import fastapi.staticfiles
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
 import redis
+import telemetry
+
 
 @contextlib.asynccontextmanager
-async def lifespan(app: fastapi.FastAPI):
+async def lifespan(app):
     telemetry.configure_opentelemetry()
     yield
+
 
 app = fastapi.FastAPI(lifespan=lifespan)
 otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 
-# Initialize Redis client
-redis_client: redis.Redis | None = None
+# Create a global to store the Redis client.
+redis_client = None
 otel_redis.RedisInstrumentor().instrument()
 
-def get_redis_client() -> redis.Redis | None:
+
+def get_redis_client():
     """Get the Redis client instance."""
     global redis_client
     if redis_client is None:
@@ -47,11 +49,12 @@ def get_redis_client() -> redis.Redis | None:
             )
     return redis_client
 
+
 logger = logging.getLogger(__name__)
 
 
-@app.get("/api/weatherforecast", response_model=list[dict[str, Any]])
-async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
+@app.get("/api/weatherforecast")
+async def weather_forecast(redis_client=fastapi.Depends(get_redis_client)):
     """Weather forecast endpoint."""
     cache_key = "weatherforecast"
     cache_ttl = 5  # 5 seconds cache duration
@@ -103,14 +106,18 @@ async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
 
 
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
-async def health_check(redis_client = fastapi.Depends(get_redis_client)):
+async def health_check(redis_client=fastapi.Depends(get_redis_client)):
     """Health check endpoint."""
     if redis_client:
         redis_client.ping()
     return "Healthy"
 
 
-app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True, check_dir=False), name="static")
+app.mount(
+    "/",
+    fastapi.staticfiles.StaticFiles(directory="static", html=True, check_dir=False),
+    name="static",
+)
 
 
 if __name__ == "__main__":
