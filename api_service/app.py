@@ -8,11 +8,15 @@ from typing import TYPE_CHECKING, Any
 import fastapi
 import fastapi.responses
 import fastapi.staticfiles
-import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as otel_exporter
+import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as trace_exporter
+import opentelemetry.exporter.otlp.proto.grpc.metric_exporter as metric_exporter
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
+import opentelemetry.metrics as otel_metrics
+import opentelemetry.sdk.metrics as otel_sdk_metrics
+import opentelemetry.sdk.metrics.export as otel_metrics_export
 import opentelemetry.sdk.trace as otel_sdk_trace
-import opentelemetry.sdk.trace.export as otel_sdk_export
+import opentelemetry.sdk.trace.export as otel_trace_export
 import opentelemetry.trace as otel_trace
 import redis
 
@@ -45,9 +49,13 @@ def get_redis_client() -> redis.Redis | None:
 
 
 otel_trace.set_tracer_provider(otel_sdk_trace.TracerProvider())
-otlpExporter = otel_exporter.OTLPSpanExporter()
-processor = otel_sdk_export.BatchSpanProcessor(otlpExporter)
+otlpExporter = trace_exporter.OTLPSpanExporter()
+processor = otel_trace_export.BatchSpanProcessor(otlpExporter)
 otel_trace.get_tracer_provider().add_span_processor(processor)
+
+exporter = metric_exporter.OTLPMetricExporter()
+reader = otel_metrics_export.PeriodicExportingMetricReader(exporter, export_interval_millis=5000)
+otel_metrics.set_meter_provider(otel_sdk_metrics.MeterProvider(metric_readers=[reader]))
 
 otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 otel_redis.RedisInstrumentor().instrument()
