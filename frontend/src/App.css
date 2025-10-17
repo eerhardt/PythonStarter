@@ -357,6 +357,7 @@
 .refresh-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   background: linear-gradient(135deg, var(--accent-gradient-start) 0%, var(--accent-gradient-end) 100%);
   color: white;
@@ -367,8 +368,10 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  min-width: 140px;
+  white-space: nowrap;
 }
 
 .refresh-button:hover:not(:disabled) {
@@ -379,6 +382,7 @@
 .refresh-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .refresh-button:focus-visible {
