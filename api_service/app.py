@@ -3,10 +3,11 @@ import json
 import logging
 import os
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import fastapi
 import fastapi.responses
+import fastapi.staticfiles
 import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as otel_exporter
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
@@ -14,9 +15,6 @@ import opentelemetry.sdk.trace as otel_sdk_trace
 import opentelemetry.sdk.trace.export as otel_sdk_export
 import opentelemetry.trace as otel_trace
 import redis
-
-if TYPE_CHECKING:
-    from typing import Any
 
 app = fastapi.FastAPI()
 
@@ -116,6 +114,11 @@ async def health_check():
     if redis_client := get_redis_client():
         redis_client.ping()
     return "Healthy"
+
+
+# Serve static files directly from root, if the "static" directory exists
+if os.path.exists("static"):
+    app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True), name="static")
 
 
 if __name__ == "__main__":
