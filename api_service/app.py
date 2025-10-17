@@ -1,30 +1,30 @@
+import contextlib
 import datetime
 import json
 import logging
 import os
 import random
+import telemetry
 from typing import TYPE_CHECKING, Any
 
 import fastapi
 import fastapi.responses
 import fastapi.staticfiles
-import opentelemetry.exporter.otlp.proto.grpc.trace_exporter as trace_exporter
-import opentelemetry.exporter.otlp.proto.grpc.metric_exporter as metric_exporter
 import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
-import opentelemetry.metrics as otel_metrics
-import opentelemetry.sdk.metrics as otel_sdk_metrics
-import opentelemetry.sdk.metrics.export as otel_metrics_export
-import opentelemetry.sdk.trace as otel_sdk_trace
-import opentelemetry.sdk.trace.export as otel_trace_export
-import opentelemetry.trace as otel_trace
 import redis
 
-app = fastapi.FastAPI()
+@contextlib.asynccontextmanager
+async def lifespan(app: fastapi.FastAPI):
+    telemetry.configure_opentelemetry()
+    yield
+
+app = fastapi.FastAPI(lifespan=lifespan)
+otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 
 # Initialize Redis client
 redis_client: redis.Redis | None = None
-
+otel_redis.RedisInstrumentor().instrument()
 
 def get_redis_client() -> redis.Redis | None:
     """Get the Redis client instance."""
@@ -47,31 +47,17 @@ def get_redis_client() -> redis.Redis | None:
             )
     return redis_client
 
-
-otel_trace.set_tracer_provider(otel_sdk_trace.TracerProvider())
-otlpExporter = trace_exporter.OTLPSpanExporter()
-processor = otel_trace_export.BatchSpanProcessor(otlpExporter)
-otel_trace.get_tracer_provider().add_span_processor(processor)
-
-exporter = metric_exporter.OTLPMetricExporter()
-reader = otel_metrics_export.PeriodicExportingMetricReader(exporter, export_interval_millis=5000)
-otel_metrics.set_meter_provider(otel_sdk_metrics.MeterProvider(metric_readers=[reader]))
-
-otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
-otel_redis.RedisInstrumentor().instrument()
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 @app.get("/api/weatherforecast", response_model=list[dict[str, Any]])
-async def weather_forecast():
+async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
     """Weather forecast endpoint."""
     cache_key = "weatherforecast"
     cache_ttl = 5  # 5 seconds cache duration
 
     # Try to get data from cache.
-    if redis_client := get_redis_client():
+    if redis_client:
         try:
             cached_data = redis_client.get(cache_key)
             if cached_data:
@@ -117,16 +103,14 @@ async def weather_forecast():
 
 
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
-async def health_check():
+async def health_check(redis_client = fastapi.Depends(get_redis_client)):
     """Health check endpoint."""
-    if redis_client := get_redis_client():
+    if redis_client:
         redis_client.ping()
     return "Healthy"
 
 
-# Serve static files directly from root, if the "static" directory exists
-if os.path.exists("static"):
-    app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True), name="static")
+app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True, check_dir=False), name="static")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-﻿#:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25516.10
-#:package Aspire.Hosting.NodeJs@13.0.0-preview.1.25516.10
-#:package Aspire.Hosting.Python@13.0.0-preview.1.25516.10
-#:package Aspire.Hosting.Redis@13.0.0-preview.1.25516.10
+﻿#:sdk Aspire.AppHost.Sdk@13.0.0-preview.1.25517.6
+#:package Aspire.Hosting.NodeJs@13.0.0-preview.1.25517.6
+#:package Aspire.Hosting.Python@13.0.0-preview.1.25517.6
+#:package Aspire.Hosting.Redis@13.0.0-preview.1.25517.6
 #:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
